@@ -86,10 +86,14 @@ bool WinsockInitializer::Initialize(Error* error)
   std::call_once(
     m_init_flag,
     [this](Error* error) {
-      WSADATA wsa = {};
-      m_initialized = WSAStartup(MAKEWORD(2, 2), &wsa);
+            WSADATA wsa = {};
+      // WSAStartup() returns 0 on success and the error code directly on
+      // failure (it does not set the per-thread error, so WSAGetLastError()
+      // is not valid here).
+      const int wsa_result = WSAStartup(MAKEWORD(2, 2), &wsa);
+      m_initialized = (wsa_result == 0);
       if (!m_initialized)
-        Error::SetSocket(error, "WSAStartup() failed: ", WSAGetLastError());
+        Error::SetSocket(error, "WSAStartup() failed: ", wsa_result);
     },
     error);
 
